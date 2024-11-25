@@ -1,4 +1,4 @@
-//Wasming
+// Wasming
 // compile: GOOS=js GOARCH=wasm go build -o main.wasm ./main.go
 package main
 
@@ -50,17 +50,37 @@ func main() {
 			canvasEl.Set("width", bodyW)
 			canvasEl.Set("height", bodyH)
 		}
-		moveX := (mousePos[0] - curPos[0])
-		moveY := (mousePos[1] - curPos[1])
 
-		curPos[0] += moveX
-		curPos[1] += moveY
+		// Calculate mouse movement delta
+		moveX := mousePos[0] - curPos[0]
+		moveY := mousePos[1] - curPos[1]
 
-		colorRot = float64(int(colorRot+1) % 360)
-		ctx.Set("fillStyle", colorful.Hsv(colorRot, 1, 1).Hex())
-		ctx.Call("beginPath")
-		ctx.Call("arc", curPos[0], curPos[1], 50, 0, 2*math.Pi)
-		ctx.Call("fill")
+		// Add interpolation for smoother lines
+		steps := int(math.Max(math.Abs(moveX), math.Abs(moveY))) // Determine the number of interpolation steps
+		if steps > 0 {
+			stepX := moveX / float64(steps) // X increment per step
+			stepY := moveY / float64(steps) // Y increment per step
+			for i := 0; i < steps; i++ {
+				curPos[0] += stepX
+				curPos[1] += stepY
+
+				colorRot = float64(int(colorRot+1) % 360)
+				ctx.Set("fillStyle", colorful.Hsv(colorRot, 1, 1).Hex())
+				ctx.Call("beginPath")
+				ctx.Call("arc", curPos[0], curPos[1], 50, 0, 2*math.Pi)
+				ctx.Call("fill")
+			}
+		} else {
+			// No significant movement, just draw at the current position
+			curPos[0] += moveX
+			curPos[1] += moveY
+
+			colorRot = float64(int(colorRot+1) % 360)
+			ctx.Set("fillStyle", colorful.Hsv(colorRot, 1, 1).Hex())
+			ctx.Call("beginPath")
+			ctx.Call("arc", curPos[0], curPos[1], 50, 0, 2*math.Pi)
+			ctx.Call("fill")
+		}
 
 		js.Global().Call("requestAnimationFrame", renderFrame)
 		return nil
